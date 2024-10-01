@@ -1,0 +1,885 @@
+---
+title: "R Project"
+author: "Kaila Lee"
+date: "2024-09-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+```
+
+```{r}
+# Load datasets
+patient_params_athero <- read.csv("Patient Parameters/Anonymized_Patient_Parameters_Atherosclerosis.csv")
+patient_params_htn <- read.csv("Patient Parameters/Anonymized_Patient_Parameters_Hypertension.csv")
+patient_params_diab <- read.csv("Patient Parameters/Anonymized_Patient_Parameters_Type_2_Diabetes.csv")
+nutritional_values_athero <- read.csv("Nutritional values/Nutritional_Values_Applied_Diet_Atherosclerosis.csv")
+nutritional_values_htn <- read.csv("Nutritional values/Nutritional_Values_Applied_Diet_Hypertension.csv")
+nutritional_values_diab <- read.csv("Nutritional values/Nutritional_Values_Applied_Diet_Type_2_Diabetes.csv")
+test_results_athero <- read.csv("Test Results/Anonymized_Test_Results_Atherosclerosis.csv")
+test_results_htn <- read.csv("Test Results/Anonymized_Test_Results_Hypertension.csv")
+test_results_diab <- read.csv("Test Results/Anonymized_Test_Results_Type_2_Diabetes.csv")
+```
+```{r}
+patient_params <- rbind(patient_params_athero, patient_params_htn, patient_params_diab)
+nutritional_values <- rbind(nutritional_values_athero, nutritional_values_htn, nutritional_values_diab)
+```
+
+```{r}
+# Inspect the datasets
+str(patient_params)
+str(nutritional_values)
+
+# Display the first few rows of each dataset
+head(patient_params)
+head(nutritional_values)
+
+```
+
+```{r}
+# Merge datasets by the 'No' column
+combined_data <- patient_params %>%
+  left_join(nutritional_values, by = "No")
+
+```
+
+```{r}
+head(combined_data)
+
+```
+```{r}
+combined_data <- combined_data%>%
+  slice(-c(1:3))
+head(combined_data)
+```
+```{r}
+str(combined_data)
+
+```
+```{r}
+combined_data$Height <- as.numeric(as.character(combined_data$Height))
+combined_data$Weight <- as.numeric(as.character(combined_data$Weight))
+
+```
+
+
+```{r}
+# Calculate BMI and add it as a new column
+combined_data <- combined_data %>%
+  mutate(BMI = Weight / ((Height / 100)^2))
+
+
+# View the first few rows of the updated data
+head(combined_data)
+```
+```{r}
+combined_data <- combined_data %>%
+  select(-`Physical.Activity`, -`Calories.Summary`)
+# View the first few rows of the updated data
+head(combined_data)
+```
+```{r}
+# Convert BMI into categorical variable
+combined_data <- combined_data %>%
+  mutate(BMI_category = cut(BMI, breaks = c(-Inf, 18.5, 24.9, 29.9, Inf),
+                             labels = c("Underweight", "Normal weight", "Overweight", "Obese")))
+
+combined_data <- combined_data %>%
+  filter(!is.na(BMI_category))
+
+head(combined_data)
+```
+
+```{r}
+# Clean and convert columns
+combined_data <- combined_data %>%
+  mutate(
+    Protein_percent = as.numeric(str_replace_all(Protein...., "%", "")),
+    Fat_percent = as.numeric(str_replace_all(Fat...., "%", "")),
+    Carbohydrates_percent = as.numeric(str_replace_all(Carbohydrates...., "%", "")),
+    Iron_mg = as.numeric(str_replace_all(str_replace_all(Iron..mg., "mg", ""), ",", ".")),
+    Sodium_mg = as.numeric(str_replace_all(str_replace_all(Sodium..mg., "mg", ""), ",", ".")),
+    Calcium_mg = as.numeric(str_replace_all(str_replace_all(Calcium..mg., "mg", ""), ",", ".")),
+    Phosphorus_mg = as.numeric(str_replace_all(str_replace_all(Phosphorus..mg., "mg", ""), ",", ".")),
+    Potassium_mg = as.numeric(str_replace_all(str_replace_all(Potassium..mg., "mg", ""), ",", ".")),
+    Magnesium_mg = as.numeric(str_replace_all(str_replace_all(Magnesium..mg., "mg", ""), ",", ".")),
+    Zinc_mg = as.numeric(str_replace_all(str_replace_all(Zinc..mg., "mg", ""), ",", ".")),
+    Iodine_µg = as.numeric(str_replace_all(str_replace_all(Iodine..µg., "mg", ""), ",", ".")),
+    Selenium_µg = as.numeric(str_replace_all(str_replace_all(Selenium..µg., "mg", ""), ",", ".")),
+    Copper_mg = as.numeric(str_replace_all(str_replace_all(Copper..mg., "mg", ""), ",", ".")),
+    Manganese_mg = as.numeric(str_replace_all(str_replace_all(Manganese..mg., "mg", ""), ",", ".")),
+    Omega_3 = as.numeric(str_replace_all(str_replace_all(omega.3, "g", ""), ",", ".")),
+    Vitamin_A_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.A..µg., "µg", ""), ",", ".")),
+    Vitamin_D_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.D..µg., "µg", ""), ",", ".")),
+    Vitamin_E_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.E..mg., "mg", ""), ",", ".")),
+    Vitamin_B1_mg = as.numeric(str_replace_all(str_replace_all(wit..B1...Tiamina, "mg", ""), ",", ".")),
+    Vitamin_B2_mg = as.numeric(str_replace_all(str_replace_all(wit..B2...Riboflavin, "mg", ""), ",", ".")),
+    Vitamin_B3_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B3..mg., "mg", ""), ",", ".")),
+    Vitamin_B5_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B5..mg., "mg", ""), ",", ".")),
+    Vitamin_B6_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B6..mg., "mg", ""), ",", ".")),
+    Vitamin_B7_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B7..µg., "µg", ""), ",", ".")),
+    Vitamin_B12_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B12..µg., "µg", ""), ",", ".")),
+    Vitamin_C_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.C..mg., "mg", ""), ",", ".")),
+    Vitamin_K_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.K..µg., "µg", ""), ",", ".")),
+    Omega_6_g = as.numeric(str_replace_all(str_replace_all(Omega.6..g., "g", ""), ",", ".")),
+    Cholesterol_mg_day = as.numeric(str_replace_all(str_replace_all(Cholesterol..mg.day., "mg/day", ""), ",", ".")),
+    Dietary_Fiber_g = as.numeric(str_replace_all(str_replace_all(Dietary.Fiber..g., "g", ""), ",", "."))
+  )
+
+# Calculate mean values for dietary factors by BMI category
+correlations <- combined_data %>%
+  group_by(BMI_category) %>%
+  summarise(
+    count_Type_of_Diet = n(),
+    mean_Number_of_Meals_per_Day = mean(Number.of.Meals.per.Day, na.rm = TRUE),
+    mean_Protein = mean(Protein_percent, na.rm = TRUE),
+    mean_Fat = mean(Fat_percent, na.rm = TRUE),
+    mean_Carbohydrates = mean(Carbohydrates_percent, na.rm = TRUE),
+    mean_Iron = mean(Iron_mg, na.rm = TRUE),
+    mean_Sodium = mean(Sodium_mg, na.rm = TRUE),
+    mean_Calcium = mean(Calcium_mg, na.rm = TRUE),
+    mean_Phosphorus = mean(Phosphorus_mg, na.rm = TRUE),
+    mean_Potassium = mean(Potassium_mg, na.rm = TRUE),
+    mean_Magnesium = mean(Magnesium_mg, na.rm = TRUE),
+    mean_Zinc = mean(Zinc_mg, na.rm = TRUE),
+    mean_Iodine = mean(Iodine_µg, na.rm = TRUE),
+    mean_Selenium = mean(Selenium_µg, na.rm = TRUE),
+    mean_Copper = mean(Copper_mg, na.rm = TRUE),
+    mean_Manganese = mean(Manganese_mg, na.rm = TRUE),
+    mean_Omega_3 = mean(Omega_3, na.rm = TRUE),
+    mean_Vitamin_A = mean(Vitamin_A_µg, na.rm = TRUE),
+    mean_Vitamin_D = mean(Vitamin_D_µg, na.rm = TRUE),
+    mean_Vitamin_E = mean(Vitamin_E_mg, na.rm = TRUE),
+    mean_Vitamin_B1 = mean(Vitamin_B1_mg, na.rm = TRUE),
+    mean_Vitamin_B2 = mean(Vitamin_B2_mg, na.rm = TRUE),
+    mean_Vitamin_B3 = mean(Vitamin_B3_mg, na.rm = TRUE),
+    mean_Vitamin_B5 = mean(Vitamin_B5_mg, na.rm = TRUE),
+    mean_Vitamin_B6 = mean(Vitamin_B6_mg, na.rm = TRUE),
+    mean_Vitamin_B7 = mean(Vitamin_B7_µg, na.rm = TRUE),
+    mean_Vitamin_B12 = mean(Vitamin_B12_µg, na.rm = TRUE),
+    mean_Vitamin_C = mean(Vitamin_C_mg, na.rm = TRUE),
+    mean_Vitamin_K = mean(Vitamin_K_µg, na.rm = TRUE),
+    mean_Omega_6 = mean(Omega_6_g, na.rm = TRUE),
+    mean_Cholesterol = mean(Cholesterol_mg_day, na.rm = TRUE),
+    mean_Dietary_Fiber = mean(Dietary_Fiber_g, na.rm = TRUE)
+  )
+
+
+print(correlations)
+
+```
+```{r}
+# Convert the data to long format for easier plotting (excluding Type_of_Diet for this plot)
+long_diet <- combined_data %>%
+  select(BMI_category, 
+         Number.of.Meals.per.Day, 
+         Protein_percent, 
+         Fat_percent, 
+         Carbohydrates_percent, 
+         Iron_mg, 
+         Sodium_mg, 
+         Calcium_mg, 
+         Phosphorus_mg, 
+         Potassium_mg, 
+         Magnesium_mg, 
+         Zinc_mg, 
+         Iodine_µg, 
+         Selenium_µg, 
+         Copper_mg, 
+         Manganese_mg, 
+         Omega_3, 
+         Vitamin_A_µg, 
+         Vitamin_D_µg, 
+         Vitamin_E_mg, 
+         Vitamin_B1_mg, 
+         Vitamin_B2_mg, 
+         Vitamin_B3_mg, 
+         Vitamin_B5_mg, 
+         Vitamin_B6_mg, 
+         Vitamin_B7_µg, 
+         Vitamin_B12_µg, 
+         Vitamin_C_mg, 
+         Vitamin_K_µg, 
+         Omega_6_g, 
+         Cholesterol_mg_day, 
+         Dietary_Fiber_g) %>%
+  pivot_longer(cols = c(Number.of.Meals.per.Day, 
+                        Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g),
+               names_to = "Nutrient",
+               values_to = "Value")
+
+# Get unique nutrients
+nutrients <- unique(long_diet$Nutrient)
+
+# Loop through each nutrient and create a plot
+for (nutrient in nutrients) {
+  # Filter data for the current nutrient
+  data_subset <- long_diet %>% filter(Nutrient == nutrient)
+  
+  # Create the plot
+  p <- ggplot(data_subset, aes(x = BMI_category, y = Value, fill = BMI_category)) +
+    geom_boxplot() +
+    labs(title = paste("Dietary Factor:", nutrient),
+         x = "BMI Category",
+         y = "Value",
+         fill = "BMI Category") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Display the plot
+  print(p)
+}
+
+
+
+```
+```{r}
+# Plot the distribution of Type_of_Diet by BMI Category
+ggplot(combined_data, aes(x = BMI_category, fill = Type.of.Diet)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Type of Diet by BMI Category",
+       x = "BMI Category",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+```{r}
+# Convert Age to numeric
+combined_data <- combined_data %>%
+  mutate(Age = as.numeric(Age))
+
+# Create AgeGroup and add it to the dataframe
+combined_data <- combined_data %>%
+  mutate(AgeGroup = cut(Age, breaks = c(0, 18, 35, 50, Inf), 
+                         labels = c("18-24", "25-34", "35-49", "50+")))
+# Explore the impact of demographics on health outcomes
+demographic_analysis <- combined_data %>%
+  group_by(AgeGroup, Gender) %>%
+  summarise(mean_BMI = mean(BMI, na.rm = TRUE))
+
+print(demographic_analysis)
+
+```
+```{r}
+# Plot BMI by age group and type of diet
+ggplot(combined_data, aes(x = Type.of.Diet, y = BMI, fill = AgeGroup)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ Gender) +
+  labs(title = "BMI by Age Group, Gender, and Type of Diet",
+       x = "Type of Diet", y = "BMI") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+```{r}
+# Plot BMI by age group and gender
+ggplot(combined_data, aes(x = AgeGroup, y = BMI, color = Gender)) +
+  geom_point() +
+  geom_line(aes(group = Gender)) +
+  facet_wrap(~ Type.of.Diet) +
+  labs(title = "BMI by Age Group, Gender, and Type of Diet",
+       x = "Age Group", y = "BMI")
+
+```
+```{r}
+
+# Compute mean BMI by Age Group, Gender, and Type of Diet
+mean_bmi_data <- combined_data %>%
+  group_by(AgeGroup, Gender, Type.of.Diet) %>%
+  summarise(mean_BMI = mean(BMI, na.rm = TRUE), .groups = 'drop')
+
+# Reshape to wide format
+heatmap_data_wide <- mean_bmi_data %>%
+  pivot_wider(names_from = AgeGroup, values_from = mean_BMI, values_fill = list(mean_BMI = NA))
+
+# Reshape to long format, ensuring to include all specific AgeGroup names
+heatmap_data_long <- heatmap_data_wide %>%
+  pivot_longer(cols = c("18-24", "25-34", "35-49", "50+"),
+               names_to = "AgeGroup",
+               values_to = "mean_BMI")
+
+# Plot heatmap
+ggplot(heatmap_data_long, aes(x = AgeGroup, y = Gender, fill = mean_BMI)) +
+  geom_tile() +
+  facet_wrap(~ Type.of.Diet) +
+  labs(title = "Heatmap of Mean BMI by Age Group, Gender, and Type of Diet",
+       x = "Age Group", y = "Gender", fill = "Mean BMI") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+```{r}
+# Add a new column for cholesterol level category
+cholesterol <- test_results_athero %>%
+  mutate(Cholesterol_Category = case_when(
+    Cholesterol.LDL < 100 ~ "Normal LDL",
+    Cholesterol.LDL >= 100 & Cholesterol.LDL <= 129 ~ "Near-Optimal LDL",
+    Cholesterol.LDL >= 130 & Cholesterol.LDL <= 159 ~ "Borderline High LDL",
+    Cholesterol.LDL >= 160 & Cholesterol.LDL <= 189 ~ "High LDL",
+    Cholesterol.LDL >= 190 ~ "Very High LDL",
+    TRUE ~ "Unknown"  # This handles any cases that do not fit the specified ranges
+  ))
+
+# View the first few rows of the updated data to check the new column
+head(cholesterol)
+# Summary of the new Cholesterol_Category column
+table(cholesterol$Cholesterol_Category)
+
+```
+```{r}
+# Example of joining by a common column
+atherosclerosis <- left_join(cholesterol, nutritional_values_athero, by = "No")
+# View the first few rows of the updated data to check the new column
+head(atherosclerosis)
+```
+```{r}
+atherosclerosis <- atherosclerosis %>%
+  mutate(
+    Protein_percent = as.numeric(str_replace_all(Protein...., "%", "")),
+    Fat_percent = as.numeric(str_replace_all(Fat...., "%", "")),
+    Carbohydrates_percent = as.numeric(str_replace_all(Carbohydrates...., "%", "")),
+    Iron_mg = as.numeric(str_replace_all(str_replace_all(Iron..mg., "mg", ""), ",", ".")),
+    Sodium_mg = as.numeric(str_replace_all(str_replace_all(Sodium..mg., "mg", ""), ",", ".")),
+    Calcium_mg = as.numeric(str_replace_all(str_replace_all(Calcium..mg., "mg", ""), ",", ".")),
+    Phosphorus_mg = as.numeric(str_replace_all(str_replace_all(Phosphorus..mg., "mg", ""), ",", ".")),
+    Potassium_mg = as.numeric(str_replace_all(str_replace_all(Potassium..mg., "mg", ""), ",", ".")),
+    Magnesium_mg = as.numeric(str_replace_all(str_replace_all(Magnesium..mg., "mg", ""), ",", ".")),
+    Zinc_mg = as.numeric(str_replace_all(str_replace_all(Zinc..mg., "mg", ""), ",", ".")),
+    Iodine_µg = as.numeric(str_replace_all(str_replace_all(Iodine..µg., "mg", ""), ",", ".")),
+    Selenium_µg = as.numeric(str_replace_all(str_replace_all(Selenium..µg., "mg", ""), ",", ".")),
+    Copper_mg = as.numeric(str_replace_all(str_replace_all(Copper..mg., "mg", ""), ",", ".")),
+    Manganese_mg = as.numeric(str_replace_all(str_replace_all(Manganese..mg., "mg", ""), ",", ".")),
+    Omega_3 = as.numeric(str_replace_all(str_replace_all(omega.3, "g", ""), ",", ".")),
+    Vitamin_A_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.A..µg., "µg", ""), ",", ".")),
+    Vitamin_D_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.D..µg., "µg", ""), ",", ".")),
+    Vitamin_E_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.E..mg., "mg", ""), ",", ".")),
+    Vitamin_B1_mg = as.numeric(str_replace_all(str_replace_all(wit..B1...Tiamina, "mg", ""), ",", ".")),
+    Vitamin_B2_mg = as.numeric(str_replace_all(str_replace_all(wit..B2...Riboflavin, "mg", ""), ",", ".")),
+    Vitamin_B3_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B3..mg., "mg", ""), ",", ".")),
+    Vitamin_B5_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B5..mg., "mg", ""), ",", ".")),
+    Vitamin_B6_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B6..mg., "mg", ""), ",", ".")),
+    Vitamin_B7_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B7..µg., "µg", ""), ",", ".")),
+    Vitamin_B12_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B12..µg., "µg", ""), ",", ".")),
+    Vitamin_C_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.C..mg., "mg", ""), ",", ".")),
+    Vitamin_K_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.K..µg., "µg", ""), ",", ".")),
+    Omega_6_g = as.numeric(str_replace_all(str_replace_all(Omega.6..g., "g", ""), ",", ".")),
+    Cholesterol_mg_day = as.numeric(str_replace_all(str_replace_all(Cholesterol..mg.day., "mg/day", ""), ",", ".")),
+    Dietary_Fiber_g = as.numeric(str_replace_all(str_replace_all(Dietary.Fiber..g., "g", ""), ",", "."))
+  )
+```
+
+```{r}
+# Convert the data to long format for easier plotting
+long_athero <- atherosclerosis %>%
+  select(Cholesterol_Category, Type.of.Diet, Number.of.Meals.per.Day,  Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g) %>%
+  pivot_longer(cols = c(Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g),
+               names_to = "Nutrient",
+               values_to = "Value")
+
+# Example of converting data columns from character to numeric
+long_athero <- long_athero %>%
+  mutate(Value = as.numeric(Value)) # Convert 'Value' to numeric
+
+# List of nutrients you want to plot
+unique_nutrients <- unique(long_athero$Nutrient)
+
+# Exclude 'Unknown' from the dataset
+long_athero_filtered <- long_athero %>%
+  filter(Cholesterol_Category != "Unknown")
+
+# Loop through nutrients for plotting
+for (nutrient in unique(long_athero_filtered$Nutrient)) {
+  p <- ggplot(filter(long_athero_filtered, Nutrient == nutrient), aes(x = Cholesterol_Category, y = Value)) +
+    geom_boxplot() +
+    labs(title = paste("Dietary Factors by Cholesterol Category -", nutrient),
+         x = "Cholesterol Category",
+         y = "Value") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme_minimal() 
+
+  print(p)
+}
+
+```
+```{r}
+
+# Plot for Type of Diet by Cholesterol Category
+# Create the grouped bar plot
+ggplot(long_athero_filtered, aes(x = Cholesterol_Category, fill = Type.of.Diet)) +
+  geom_bar(position = "dodge", stat = "count") +
+  labs(title = "Distribution of Type of Diet by Cholesterol Category",
+       x = "Cholesterol Category",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+```
+
+
+```{r}
+# Add a new column for blood pressure category
+BP <- test_results_htn %>%
+  mutate(BP_Category = case_when(
+    Systolic.Pressure < 120 & Diastolic.Pressure < 80 ~ "Normal",
+    Systolic.Pressure >= 120 & Systolic.Pressure <= 129 & Diastolic.Pressure < 80 ~ "Elevated",
+    (Systolic.Pressure >= 130 & Systolic.Pressure <= 139) | (Diastolic.Pressure >= 80 & Diastolic.Pressure <= 89) ~ "Stage 1 Hypertension",
+    Systolic.Pressure >= 140 | Diastolic.Pressure >= 90 ~ "Stage 2 Hypertension",
+    TRUE ~ "Unknown"  # This handles any cases that do not fit the specified ranges
+  ))
+
+# View the first few rows of the updated data to check the new column
+head(BP)
+# Summary of the new BP_Category column
+table(BP$BP_Category)
+
+```
+```{r}
+# Example of joining by a common column
+hypertension <- left_join(BP, nutritional_values_htn, by = "No")
+hypertension <- hypertension %>%
+  filter(BP_Category != "Unknown")
+# View the first few rows of the updated data to check the new column
+head(hypertension)
+```
+```{r}
+hypertension <- hypertension %>%
+  mutate(
+    Protein_percent = as.numeric(str_replace_all(Protein...., "%", "")),
+    Fat_percent = as.numeric(str_replace_all(Fat...., "%", "")),
+    Carbohydrates_percent = as.numeric(str_replace_all(Carbohydrates...., "%", "")),
+    Iron_mg = as.numeric(str_replace_all(str_replace_all(Iron..mg., "mg", ""), ",", ".")),
+    Sodium_mg = as.numeric(str_replace_all(str_replace_all(Sodium..mg., "mg", ""), ",", ".")),
+    Calcium_mg = as.numeric(str_replace_all(str_replace_all(Calcium..mg., "mg", ""), ",", ".")),
+    Phosphorus_mg = as.numeric(str_replace_all(str_replace_all(Phosphorus..mg., "mg", ""), ",", ".")),
+    Potassium_mg = as.numeric(str_replace_all(str_replace_all(Potassium..mg., "mg", ""), ",", ".")),
+    Magnesium_mg = as.numeric(str_replace_all(str_replace_all(Magnesium..mg., "mg", ""), ",", ".")),
+    Zinc_mg = as.numeric(str_replace_all(str_replace_all(Zinc..mg., "mg", ""), ",", ".")),
+    Iodine_µg = as.numeric(str_replace_all(str_replace_all(Iodine..µg., "mg", ""), ",", ".")),
+    Selenium_µg = as.numeric(str_replace_all(str_replace_all(Selenium..µg., "mg", ""), ",", ".")),
+    Copper_mg = as.numeric(str_replace_all(str_replace_all(Copper..mg., "mg", ""), ",", ".")),
+    Manganese_mg = as.numeric(str_replace_all(str_replace_all(Manganese..mg., "mg", ""), ",", ".")),
+    Omega_3 = as.numeric(str_replace_all(str_replace_all(omega.3, "g", ""), ",", ".")),
+    Vitamin_A_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.A..µg., "µg", ""), ",", ".")),
+    Vitamin_D_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.D..µg., "µg", ""), ",", ".")),
+    Vitamin_E_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.E..mg., "mg", ""), ",", ".")),
+    Vitamin_B1_mg = as.numeric(str_replace_all(str_replace_all(wit..B1...Tiamina, "mg", ""), ",", ".")),
+    Vitamin_B2_mg = as.numeric(str_replace_all(str_replace_all(wit..B2...Riboflavin, "mg", ""), ",", ".")),
+    Vitamin_B3_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B3..mg., "mg", ""), ",", ".")),
+    Vitamin_B5_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B5..mg., "mg", ""), ",", ".")),
+    Vitamin_B6_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B6..mg., "mg", ""), ",", ".")),
+    Vitamin_B7_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B7..µg., "µg", ""), ",", ".")),
+    Vitamin_B12_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B12..µg., "µg", ""), ",", ".")),
+    Vitamin_C_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.C..mg., "mg", ""), ",", ".")),
+    Vitamin_K_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.K..µg., "µg", ""), ",", ".")),
+    Omega_6_g = as.numeric(str_replace_all(str_replace_all(Omega.6..g., "g", ""), ",", ".")),
+    Cholesterol_mg_day = as.numeric(str_replace_all(str_replace_all(Cholesterol..mg.day., "mg/day", ""), ",", ".")),
+    Dietary_Fiber_g = as.numeric(str_replace_all(str_replace_all(Dietary.Fiber..g., "g", ""), ",", "."))
+  )
+```
+
+```{r}
+# Create a plot for dietary factors by blood pressure category
+# Convert the data to long format for easier plotting
+long_htn <- hypertension %>%
+  select(BP_Category, Type.of.Diet, Number.of.Meals.per.Day,  Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g) %>%
+  pivot_longer(cols = c(Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g),
+               names_to = "Nutrient",
+               values_to = "Value")
+
+# Example of converting data columns from character to numeric
+long_htn <- long_htn %>%
+  mutate(Value = as.numeric(Value)) # Convert 'Value' to numeric
+
+# Loop through nutrients for plotting
+for (nutrient in unique(long_htn$Nutrient)) {
+  q <- ggplot(filter(long_htn, Nutrient == nutrient), aes(x = BP_Category, y = Value)) +
+    geom_boxplot() +
+    labs(title = paste("Dietary Factors by Blood Pressure Category -", nutrient),
+         x = "Blood Pressure Category",
+         y = "Value") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme_minimal() 
+
+  print(q)
+}
+
+```
+```{r}
+# Plot for Type of Diet by Blood Pressure Category
+# Create the grouped bar plot
+ggplot(long_htn, aes(x = BP_Category, fill = Type.of.Diet)) +
+  geom_bar(position = "dodge", stat = "count") +
+  labs(title = "Distribution of Type of Diet by Blood Pressure Category",
+       x = "Blood Pressure Category",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+```
+
+
+```{r}
+# Example of joining by a common column
+diabetes <- left_join(test_results_diab, nutritional_values_diab, by = "No")
+# Remove the first row from the dataframe
+diabetes <- diabetes[-1, ]
+
+# View the first few rows of the updated data to check the new column
+head(diabetes)
+```
+```{r}
+diabetes <- diabetes %>%
+  mutate(
+    Protein_percent = as.numeric(str_replace_all(Protein...., "%", "")),
+    Fat_percent = as.numeric(str_replace_all(Fat...., "%", "")),
+    Carbohydrates_percent = as.numeric(str_replace_all(Carbohydrates...., "%", "")),
+    Iron_mg = as.numeric(str_replace_all(str_replace_all(Iron..mg., "mg", ""), ",", ".")),
+    Sodium_mg = as.numeric(str_replace_all(str_replace_all(Sodium..mg., "mg", ""), ",", ".")),
+    Calcium_mg = as.numeric(str_replace_all(str_replace_all(Calcium..mg., "mg", ""), ",", ".")),
+    Phosphorus_mg = as.numeric(str_replace_all(str_replace_all(Phosphorus..mg., "mg", ""), ",", ".")),
+    Potassium_mg = as.numeric(str_replace_all(str_replace_all(Potassium..mg., "mg", ""), ",", ".")),
+    Magnesium_mg = as.numeric(str_replace_all(str_replace_all(Magnesium..mg., "mg", ""), ",", ".")),
+    Zinc_mg = as.numeric(str_replace_all(str_replace_all(Zinc..mg., "mg", ""), ",", ".")),
+    Iodine_µg = as.numeric(str_replace_all(str_replace_all(Iodine..µg., "mg", ""), ",", ".")),
+    Selenium_µg = as.numeric(str_replace_all(str_replace_all(Selenium..µg., "mg", ""), ",", ".")),
+    Copper_mg = as.numeric(str_replace_all(str_replace_all(Copper..mg., "mg", ""), ",", ".")),
+    Manganese_mg = as.numeric(str_replace_all(str_replace_all(Manganese..mg., "mg", ""), ",", ".")),
+    Omega_3 = as.numeric(str_replace_all(str_replace_all(omega.3, "g", ""), ",", ".")),
+    Vitamin_A_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.A..µg., "µg", ""), ",", ".")),
+    Vitamin_D_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.D..µg., "µg", ""), ",", ".")),
+    Vitamin_E_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.E..mg., "mg", ""), ",", ".")),
+    Vitamin_B1_mg = as.numeric(str_replace_all(str_replace_all(wit..B1...Tiamina, "mg", ""), ",", ".")),
+    Vitamin_B2_mg = as.numeric(str_replace_all(str_replace_all(wit..B2...Riboflavin, "mg", ""), ",", ".")),
+    Vitamin_B3_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B3..mg., "mg", ""), ",", ".")),
+    Vitamin_B5_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B5..mg., "mg", ""), ",", ".")),
+    Vitamin_B6_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.B6..mg., "mg", ""), ",", ".")),
+    Vitamin_B7_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B7..µg., "µg", ""), ",", ".")),
+    Vitamin_B12_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.B12..µg., "µg", ""), ",", ".")),
+    Vitamin_C_mg = as.numeric(str_replace_all(str_replace_all(Vitamin.C..mg., "mg", ""), ",", ".")),
+    Vitamin_K_µg = as.numeric(str_replace_all(str_replace_all(Vitamin.K..µg., "µg", ""), ",", ".")),
+    Omega_6_g = as.numeric(str_replace_all(str_replace_all(Omega.6..g., "g", ""), ",", ".")),
+    Cholesterol_mg_day = as.numeric(str_replace_all(str_replace_all(Cholesterol..mg.day., "mg/day", ""), ",", ".")),
+    Dietary_Fiber_g = as.numeric(str_replace_all(str_replace_all(Dietary.Fiber..g., "g", ""), ",", "."))
+  )
+```
+```{r}
+diabetes$Fasting.Glucose.Concentration <- as.numeric(diabetes$Fasting.Glucose.Concentration)
+```
+
+
+```{r}
+# Create a plot for dietary factors by fasting glucose category
+# Convert the data to long format for easier plotting
+long_diab <- diabetes %>%
+  select(Fasting.Glucose.Concentration, Type.of.Diet, Number.of.Meals.per.Day,  Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g) %>%
+  pivot_longer(cols = c(Protein_percent, 
+                        Fat_percent, 
+                        Carbohydrates_percent, 
+                        Iron_mg, 
+                        Sodium_mg, 
+                        Calcium_mg, 
+                        Phosphorus_mg, 
+                        Potassium_mg, 
+                        Magnesium_mg, 
+                        Zinc_mg, 
+                        Iodine_µg, 
+                        Selenium_µg, 
+                        Copper_mg, 
+                        Manganese_mg, 
+                        Omega_3, 
+                        Vitamin_A_µg, 
+                        Vitamin_D_µg, 
+                        Vitamin_E_mg, 
+                        Vitamin_B1_mg, 
+                        Vitamin_B2_mg, 
+                        Vitamin_B3_mg, 
+                        Vitamin_B5_mg, 
+                        Vitamin_B6_mg, 
+                        Vitamin_B7_µg, 
+                        Vitamin_B12_µg, 
+                        Vitamin_C_mg, 
+                        Vitamin_K_µg, 
+                        Omega_6_g, 
+                        Cholesterol_mg_day, 
+                        Dietary_Fiber_g),
+               names_to = "Nutrient",
+               values_to = "Value")
+
+# Example of converting data columns from character to numeric
+long_diab <- long_diab %>%
+  mutate(Value = as.numeric(Value)) # Convert 'Value' to numeric
+
+```
+
+```{r}
+library(RColorBrewer)  # For custom color palette
+
+# Handle duplicates by summarizing to get the mean value for each combination
+long_diab_clean <- long_diab %>%
+  group_by(Fasting.Glucose.Concentration, Nutrient) %>%
+  summarise(Value = mean(Value, na.rm = TRUE), .groups = 'drop')
+
+# Pivot the data to wide format
+wide_diab <- long_diab_clean %>%
+  pivot_wider(names_from = Nutrient, values_from = Value)
+
+# Convert all columns to numeric, excluding the first column if it's not numeric
+wide_diab_numeric <- wide_diab %>%
+  mutate(across(-Fasting.Glucose.Concentration, as.numeric)) %>%
+  drop_na()  # Drop rows with NA values, if any
+
+# Convert to long format for plotting
+long_diab_numeric <- wide_diab_numeric %>%
+  pivot_longer(-Fasting.Glucose.Concentration, names_to = "Nutrient", values_to = "Value")
+
+# Create a custom color palette with 30 distinct colors
+n <- 30
+color_palette <- colorRampPalette(brewer.pal(8, "Set3"))(n)
+
+# Create the bubble plot with different colors for each nutrient
+ggplot(long_diab_numeric, aes(x = Fasting.Glucose.Concentration, y = Nutrient, size = Value, color = Nutrient)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(name = "Nutrient Value") +
+  scale_color_manual(values = color_palette) +  # Use the custom color palette
+  labs(title = "Bubble Plot of Nutrients by Fasting Glucose Concentration",
+       x = "Fasting Glucose Concentration",
+       y = "Nutrient",
+       color = "Nutrient") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+```{r}
+# Plot for Type of Diet by Fasting Glucose Concentrations
+# Create the grouped bar plot
+ggplot(long_diab, aes(x = Fasting.Glucose.Concentration, fill = Type.of.Diet)) +
+  geom_bar(position = "dodge", stat = "count") +
+  labs(title = "Distribution of Type of Diet by Fasting Glucose Concentrations for Type 2 Diabetes",
+       x = "Fasting Glucose Concentrations",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+```
+```{r}
+ggplot(long_diab, aes(x = Fasting.Glucose.Concentration, fill = Type.of.Diet)) +
+  geom_bar(position = "stack", stat = "count") +  # Stacked bar plot
+  labs(title = "Distribution of Type of Diet by Fasting Glucose Concentrations for Type 2 Diabetes",
+       x = "Fasting Glucose Concentrations",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+```
+```{r}
+# Bin the fasting glucose concentrations into intervals of 10
+long_diab <- long_diab %>%
+  mutate(Glucose.Bin = cut(Fasting.Glucose.Concentration, 
+                           breaks = seq(min(Fasting.Glucose.Concentration), 
+                                         max(Fasting.Glucose.Concentration), 
+                                         by = 5), 
+                           include.lowest = TRUE, 
+                           right = FALSE))
+
+# Create the plot
+ggplot(long_diab, aes(x = Glucose.Bin, fill = Type.of.Diet)) +
+  geom_bar(position = "stack") +  # Stacked bar plot
+  scale_fill_manual(values = brewer.pal(n = length(unique(long_diab$Type.of.Diet)), name = "Set3")) +  # Custom colors
+  labs(title = "Distribution of Type of Diet by Fasting Glucose Concentrations for Type 2 Diabetes",
+       x = "Fasting Glucose Concentrations (binned)",
+       y = "Count",
+       fill = "Type of Diet") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_minimal()
+
+```
+
